@@ -1,0 +1,17 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install build essentials and required Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && \
+    pip install --no-cache-dir "aiohttp>=3.9.0" "starknet-py>=0.22.0" "starknet-crypto-py>=0.1.0" && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY generate_paradex_jwt.py .
+
+# Set default environment variables (can be overridden at runtime)
+ENV PARADEX_L2_ADDRESS=""
+ENV PARADEX_L2_PRIVATE_KEY=""
+ENV PARADEX_HTTP_URL="https://api.testnet.paradex.trade/v1"
+
+ENTRYPOINT ["python", "generate_paradex_jwt.py"]

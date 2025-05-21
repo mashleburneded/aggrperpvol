@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/appdb
+      - REDIS_URL=redis://redis:6379
+      # LOG_LEVEL can be set here or in .env
+      # - LOG_LEVEL=info
+
+  frontend:
+    # We'll serve the frontend statically for now, or use a simple http server.
+    # For a more robust setup, Nginx or another web server could be used.
+    # This example assumes you might run a simple server or open index.html directly.
+    # If you want to serve it via Docker:
+    # image: nginx:alpine
+    # volumes:
+    #   - ./frontend:/usr/share/nginx/html
+    # ports:
+    #   - "8080:80" # Example port, adjust as needed
+    # For simplicity in this phase, we might just open frontend/index.html directly
+    # or use a live server extension during development.
+    # This section can be expanded later.
+    # For now, we'll focus on the backend services.
+    # If you want a simple static server for the frontend:
+    image: pierrezemb/gostatic
+    volumes:
+      - ./frontend:/srv/http
+    ports:
+      - "8081:8080" # Frontend on port 8081
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=appdb
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

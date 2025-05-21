@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aggregated Perpetual Volume Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Added Chart.js CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --theme-gold: #ffd230;
+            --theme-black: #000000;
+            --theme-dark-gray: #1a1a1a;
+            --theme-medium-gray: #2a2a2a;
+            --theme-light-gray: #444444;
+            --theme-text-primary: #e2e8f0; /* slate-200 */
+            --theme-text-secondary: #a0a0a0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--theme-black);
+            color: var(--theme-text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem; /* Increased padding */
+            box-sizing: border-box;
+        }
+
+        .dashboard-container {
+            background-color: var(--theme-dark-gray);
+            padding: 2.5rem; /* Increased padding */
+            border-radius: 24px; /* More rounded corners */
+            box-shadow: 0 20px 40px rgba(var(--theme-gold), 0.1), 0 0 0 1px var(--theme-light-gray); /* Gold shadow and subtle border */
+            width: 100%;
+            max-width: 800px; /* Wider max width */
+            animation: fadeIn 0.8s ease-out;
+            border: 1px solid var(--theme-light-gray);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem; /* Slightly adjusted */
+            font-weight: 900; /* Bolder */
+            color: white;
+            letter-spacing: -0.025em;
+        }
+
+        .volume-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding: 2rem;
+            background-color: var(--theme-medium-gray);
+            border-radius: 16px;
+            border: 1px solid var(--theme-light-gray);
+        }
+
+        .volume-display {
+            font-size: 4.5rem; /* Even larger */
+            font-weight: 900; /* Bolder */
+            color: var(--theme-gold);
+            text-shadow: 0 0 20px rgba(255, 210, 48, 0.7), 0 0 30px rgba(255, 210, 48, 0.5); /* Enhanced glow */
+            line-height: 1.1;
+            margin-bottom: 0.75rem;
+            min-height: 70px; /* To prevent layout shift when text changes */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: var(--theme-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto; /* Centered when shown alone */
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            color: var(--theme-text-secondary);
+        }
+
+        .api-keys-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--theme-light-gray);
+        }
+
+        .api-platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .platform-card {
+            background-color: var(--theme-medium-gray);
+            padding: 1.75rem;
+            border-radius: 16px;
+            border: 1px solid var(--theme-light-gray);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .platform-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .platform-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+        }
+        .platform-title svg { /* Basic icon styling */
+            margin-right: 0.5rem;
+            color: var(--theme-gold);
+        }
+
+        .input-group {
+            margin-bottom: 1.25rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--theme-text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .input-field-container {
+            position: relative;
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.875rem 1rem; /* 14px 16px */
+            border-radius: 10px;
+            border: 1px solid var(--theme-light-gray);
+            background-color: var(--theme-dark-gray); /* Darker input background */
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .input-field::placeholder {
+            color: var(--theme-text-secondary);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--theme-gold);
+            box-shadow: 0 0 0 3px rgba(255, 210, 48, 0.4);
+            background-color: #333; /* Slightly lighter on focus */
+        }
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--theme-text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        .password-toggle:hover {
+            color: var(--theme-gold);
+        }
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
+
+        .fetch-button-container {
+            text-align: center;
+            margin-top: 1rem; /* Reduced margin as it's below the grid */
+        }
+        .fetch-button {
+            padding: 1rem 2.5rem; /* Larger padding */
+            background-color: var(--theme-gold);
+            color: var(--theme-black);
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 6px 12px rgba(255, 210, 48, 0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fetch-button:hover {
+            background-color: #ffc100; /* Darker gold */
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(255, 210, 48, 0.35);
+        }
+        .fetch-button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 8px rgba(255, 210, 48, 0.3);
+        }
+        .fetch-button:disabled {
+            background-color: var(--theme-light-gray);
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .fetch-button .button-text {
+            margin-right: 0.5rem;
+        }
+        .fetch-button .loading-spinner { /* Spinner for button */
+            width: 20px;
+            height: 20px;
+            border-width: 3px;
+            margin: 0; /* Reset margin if used inside button */
+        }
+
+        .note-section {
+            margin-top: 3rem;
+            text-align: left;
+            color: var(--theme-text-secondary);
+            font-size: 0.875rem; /* Slightly smaller */
+            border-top: 1px solid var(--theme-light-gray);
+            padding-top: 2rem;
+            line-height: 1.7;
+        }
+        .note-section p {
+            margin-bottom: 0.75rem;
+        }
+        .note-section strong {
+            color: var(--theme-text-primary);
+            font-weight: 600;
+        }
+        .note-section code {
+            background-color: var(--theme-medium-gray);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--theme-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Aggregated Perpetual Volume</h1>
+        </div>
+
+        <div class="volume-section">
+            <div id="totalVolume" class="volume-display">
+                Awaiting Data...
+            </div>
+            <p class="last-updated">Last updated: <span id="lastUpdatedTime">N/A</span></p>
+        </div>
+
+        <h2 class="api-keys-section-title">Platform API Credentials</h2>
+        <div class="api-platforms-grid">
+            <div class="platform-card">
+                <h3 class="platform-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208,88H152V32a8,8,0,0,0-16,0V88H48a8,8,0,0,0-8,8V216a8,8,0,0,0,16,0V152H96v64a8,8,0,0,0,16,0V152H200V216a8,8,0,0,0,16,0V96A8,8,0,0,0,208,88ZM152,136H96V104h56Zm40,0H168V104h24Z"></path></svg> WOO X
+                </h3>
+                <div class="input-group">
+                    <label for="wooxApiKey">API Key:</label>
+                    <input type="text" id="wooxApiKey" class="input-field" placeholder="Enter WOO X API Key">
+                </div>
+                <div class="input-group">
+                    <label for="wooxApiSecret">API Secret:</label>
+                     <div class="input-field-container">
+                        <input type="password" id="wooxApiSecret" class="input-field" placeholder="Enter WOO X API Secret">
+                        <button type="button" class="password-toggle" aria-label="Toggle WOO X API Secret visibility">
+                            <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.48c.35.79,8.82,19.58,27.65,38.41C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.35c18.83-18.83,27.3-37.62,27.65-38.41A8,8,0,0,0,247.31,124.76ZM128,192c-30.78,0-57.67-11.19-79.93-33.25A133.47,133.47,0,0,1,25,128a133.33,133.33,0,0,1,23.07-30.75C70.33,75.19,97.22,64,128,64s57.67,11.19,79.93,33.25A133.46,133.46,0,0,1,231,128a133.33,133.33,0,0,1-23.07,30.75C185.67,180.81,158.78,192,128,192Zm0-112a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"></path></svg>
+                            <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M222.3,176.2A103.14,103.14,0,0,0,240.71,128a104.13,104.13,0,0,0-20.43-60.61,8,8,0,0,0-12.28-1.9L196.6,76.89A109.32,109.32,0,0,0,128,64a113.65,113.65,0,0,0-34.51,6.5L76.7,49.7a8,8,0,0,0-11.06,1.62L54.3,65.08A8,8,0,0,0,56,77.36l21.06,15.8L34.3,135.79a8,8,0,0,0,1.9,12.28l11.29,11.3a8,8,0,0,0,12.28-1.9L71.17,146a113.56,113.56,0,0,0,116.11,31.33l11.44,11.44a8,8,0,0,0,12.28-1.9l11.31-11.3a8,8,0,0,0-1.9-12.28ZM128,176a47.88,47.88,0,0,1-42.15-24.88l15.07-11.3A32.09,32.09,0,0,0,128,144a31.68,31.68,0,0,0,27.08-16.12L169.85,141A47.92,47.92,0,0,1,128,176ZM128,80a48.05,48.05,0,0,1,48,48,47.33,47.33,0,0,1-1.59,12.24l-16.83-12.62A31.81,31.81,0,0,0,160,128a32,32,0,0,0-32-32,31.81,31.81,0,0,0-12.62,2.42L98.76,81.59A47.73,47.73,0,0,1,128,80ZM48,128c8.13-13.22,19.14-25.31,32.33-35.1l-16-12C36.65,97.61,17.51,116.39,8.69,124.76a8,8,0,0,0,0,6.48c8.82,18.37,27.96,37.15,55.68,50.35l-16-12C27.05,158.18,16.13,146.16,8,132.29V128Zm183.31,3.24C222.5,144.1,204.15,160.42,181,172.6l16,12c27.72-13.2,46.86-31.98,55.68-50.35a8,8,0,0,0,0-6.48C244.54,119.82,226.19,103.5,203,91.31l-16,12c13.19,9.79,24.2,21.88,32.33,35.1Z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="platform-card">
+                <h3 class="platform-title">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M228,64a4,4,0,0,0-4,4V200H32V76H188a4,4,0,0,0,0-8H32A12,12,0,0,0,20,80V200a12,12,0,0,0,12,12H224a12,12,0,0,0,12-12V68A4,4,0,0,0,228,64Zm-41.37-8L176,45.37a4,4,0,0,1,5.66-5.66L192.24,50H212a4,4,0,0,1,0,8H198.63ZM168,56H154.63L144,45.37a4,4,0,0,1,5.66-5.66L160.24,50H168a4,4,0,0,1,0,8Z"></path></svg> Paradex.trade
+                </h3>
+                <div class="input-group">
+                    <label for="paradexApiKey">Paradex JWT Token:</label>
+                    <input type="text" id="paradexApiKey" class="input-field" placeholder="Enter Paradex JWT Token">
+                </div>
+                 <!-- Paradex does not use a separate API Secret, JWT is used as the key -->
+            </div>
+        </div>
+
+        <div class="fetch-button-container mb-6"> 
+            <button class="fetch-button" id="saveAllKeysButton" style="background-color: var(--theme-light-gray); color: var(--theme-text-primary); margin-right: 1rem;">
+                <span class="button-text">Save All API Keys</span>
+                <div class="loading-spinner" style="display: none;"></div>
+            </button>
+            <button class="fetch-button" id="fetchVolumeButton">
+                <span class="button-text">Fetch & Aggregate Volume</span>
+                <div class="loading-spinner" style="display: none;"></div>
+            </button>
+        </div>
+
+        <!-- New Data Fetching Controls Section -->
+        <div class="data-fetching-controls-section" style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--theme-light-gray);">
+            <h2 class="api-keys-section-title" style="margin-bottom: 1.5rem;">Manual Data Fetching</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="platformSelect" class="block mb-2 text-sm font-medium text-gray-300">Select Platform:</label>
+                    <select id="platformSelect" class="input-field w-full">
+                        <option value="woox">WOO X</option>
+                        <option value="paradex">Paradex.trade</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fetchCurrentPlatformVolumeButton" class="block mb-2 text-sm font-medium text-gray-300 invisible">_</label> 
+                    <button class="fetch-button w-full" id="fetchCurrentPlatformVolumeButton" style="font-size: 1rem; padding: 0.875rem 1rem;">
+                        <span class="button-text">Fetch Current Volume (Selected Platform)</span>
+                        <div class="loading-spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 items-end">
+                <div>
+                    <label for="startDate" class="block mb-2 text-sm font-medium text-gray-300">Start Date:</label>
+                    <input type="date" id="startDate" class="input-field w-full">
+                </div>
+                <div>
+                    <label for="endDate" class="block mb-2 text-sm font-medium text-gray-300">End Date:</label>
+                    <input type="date" id="endDate" class="input-field w-full">
+                </div>
+                <button class="fetch-button w-full" id="fetchHistoricalPlatformVolumeButton" style="font-size: 1rem; padding: 0.875rem 1rem;">
+                    <span class="button-text">Fetch Historical (Selected Platform)</span>
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
+
+            <div class="fetch-button-container mb-6">
+                <button class="fetch-button" id="fetchAllHistoricalVolumeButton" style="font-size: 1rem; padding: 0.875rem 1rem; background-color: var(--theme-light-gray); color: var(--theme-text-primary);">
+                    <span class="button-text">Fetch All Historical Data (All Platforms)</span>
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
+
+            <div id="statusMessage" class="mt-4 p-4 text-sm text-gray-300 bg-gray-700 rounded-lg" style="min-height: 50px; display: none;">
+                <!-- Status messages will appear here -->
+            </div>
+        </div>
+        <!-- End New Data Fetching Controls Section -->
+
+        <!-- Historical Chart Section -->
+        <div class="historical-chart-section" style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--theme-light-gray);">
+            <h2 class="api-keys-section-title" style="margin-bottom: 1.5rem;">Historical Aggregated Volume</h2>
+            <div style="background-color: var(--theme-medium-gray); padding: 1rem; border-radius: 16px; border: 1px solid var(--theme-light-gray);">
+                <canvas id="historicalVolumeChart"></canvas>
+            </div>
+        </div>
+        <!-- End Historical Chart Section -->
+
+        <div class="note-section">
+            <p><strong>Important:</strong> This dashboard provides the user interface for displaying aggregated trading volume. The actual functionality to fetch, aggregate, and securely handle API keys, as well as retrieve historical data (e.g., 1-2 years), <strong>requires a dedicated backend application.</strong></p>
+            <p>The API keys entered here would be securely transmitted to your backend endpoint for processing. The backend is responsible for:
+                <ul class="list-disc list-inside ml-4 my-2">
+                    <li>Securely storing and managing API credentials.</li>
+                    <li>Calling each exchange's API (WOO X, Paradex.trade).</li>
+                    <li>Fetching the relevant perpetual volume data (e.g., 24h, 7d, or historical ranges).</li>
+                    <li>Aggregating the volume from all platforms.</li>
+                    <li>Returning the total aggregated volume to this frontend for display.</li>
+                </ul>
+            </p>
+            <p>For <strong>real-time updates</strong>, your backend would typically implement WebSockets or a polling mechanism that this frontend could connect to. For embedding the volume on your website (<code>window.getCurrentTotalVolume()</code>), a more robust solution is a dedicated public API endpoint from your backend that serves the latest aggregated volume.</p>
+            <p>Handling <strong>significant user load</strong> and ensuring data accuracy and security are also critical backend responsibilities, requiring scalable infrastructure and efficient data handling strategies.</p>
+        </div>
+    </div>
+    <script src="js/app.js" defer></script>
+</body>
+</html>

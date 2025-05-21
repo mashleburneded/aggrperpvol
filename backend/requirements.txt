@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+psycopg2-binary # For synchronous operations if any, or Alembic
+asyncpg # For SQLAlchemy async with PostgreSQL
+SQLAlchemy
+redis
+apscheduler
+# Add other specific exchange SDKs or http clients like 'requests' or 'httpx' as needed
+# e.g., pybit, or if we build custom clients:
+requests
+httpx
+# For API key encryption
+cryptography
